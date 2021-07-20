@@ -1,0 +1,211 @@
+{% block main %}
+<link  href="static/cropper.min.css" rel="stylesheet">
+
+<style>
+    .image_container { 
+        max-width : 800px;
+        min-width : 500px;
+        max-height : 500px;
+        min-height : 450px;
+    }
+    #cropped_result{
+        max-height : 700px;
+        max-width : 700px;
+    }
+    .container{
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .section1{
+        width: 40%;
+        margin-left: 2em;
+    }
+
+    .section2{
+        width: 50%;
+    }
+
+    #search, #crop_button{
+        margin-top: 20px;
+        padding: 10px;
+        background: blue;
+        color: white;
+        border-radius: 10%;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    .note{
+        float: right;
+    }
+
+    .header{
+        width: 1000px;
+        margin: 0 auto;
+    }
+
+    .header h3{
+        text-align: center;
+    }
+
+    .result{
+        margin-left: 20px;
+    }
+
+    .display{
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .p{
+        width: 30%;
+        margin-right: 15px;
+        margin-bottom: 10px;
+    }
+
+</style>
+
+<body>
+    <div class="header">
+        <span class="logo">
+            <img style="width: 150px; height: 150px;" src="static/logo.png" />
+        </span>
+        <span class="note">
+            <p>Giảng viên hướng dẫn : <strong> TS. Nguyễn Đình Hóa </strong></p>
+            <p>Sinh viên thực hiện : <strong> Tạ Thị Hường </strong></p>
+        </span>
+        <h3>DEMO NHẬN DIỆN ẢNH QUẦN ÁO</h3>
+    </div>
+    <hr/>
+    <div class="container">
+        <form class="section1" id='form' enctype="multipart/form-data">
+                <input type="file" name="image" id="image" onchange="readURL(this);"/>
+                <div class="image_container">
+                    <img id="blah" src="#" onerror="this.style.display='none'" />
+                </div>
+        </form>
+        <div class="result section2">
+            <button id="search">Tìm kiếm</button>
+            <div class="display">
+                <img src="#" alt="top 1" class="p" id="p1"/>
+                <img src="#" alt="top 2" class="p" id="p2"/>
+                <img src="#" alt="top 3" class="p" id="p3"/>
+                <img src="#" alt="top 4" class="p" id="p4"/>
+                <img src="#" alt="top 5" class="p" id="p5"/>
+                <img src="#" alt="top 6" class="p" id="p6"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="section">
+            <h3>Send to Search</h3>
+            <div id="cropped_result"></div>
+        </div>
+            <button id="crop_button">Crop</button> -->
+
+    
+</body>
+<script src="static/jquery.js"></script>
+<script src="static/cropper.min.js"></script>
+<script type="text/javascript">
+    var rect = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+    }
+    var fileName;
+    function readURL(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.readAsDataURL(input.files[0]);
+            var formData = new FormData(document.getElementById('form'));
+            reader.onload = function (e) {
+                $('#blah').cropper('destroy')
+                $('#blah').attr('src', e.target.result)
+                $('#blah').cropper({
+                    aspectRatio: 1 / 1,
+                    movable: false,
+                    zoomable: false,
+                    rotatable: false,
+                    scalable: false,
+                    crop: function(e) {
+                        // Output the result data for cropping image.
+                        rect.x = e.detail.x
+                        rect.y = e.detail.y
+                        rect.width = e.detail.width
+                        rect.height = e.detail.height
+                    }
+                });
+                $.ajax({
+                    url: '/upload',
+                    data: formData,
+                    type: 'POST',
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                    success: (res)=>{
+                        fileName = res.filename
+                        console.log(fileName)
+                    }
+                })
+            };
+            
+        }
+    }
+
+    $('#search').on("click", function(event) {
+        event.preventDefault()
+        var data = {
+            img_path : fileName,
+            rect: rect
+        }
+        console.log(data)
+        $.ajax({
+            url: '/search',
+            data: JSON.stringify(data),
+            type: 'POST',
+            contentType: "application/json; charset=utf-8",
+            success: (res)=>{
+                $('#p1').attr('src', res.results[0])
+                $('#p2').attr('src', res.results[1])
+                $('#p3').attr('src', res.results[2])
+                $('#p4').attr('src', res.results[3])
+                $('#p5').attr('src', res.results[4])
+                $('#p6').attr('src', res.results[5])
+            }
+         })
+    });
+
+    // On crop button clicked
+    // document.getElementById('crop_button').addEventListener('click', function(){
+    //     var imgurl =  $('#blah').cropper('getCroppedCanvas').toDataURL();
+    //     var img = document.createElement("img");
+    //     img.src = imgurl;
+    //     $("#cropped_result").html(img);
+
+    //         /* ---------------- SEND IMAGE TO THE SERVER-------------------------
+
+    //             cropper.getCroppedCanvas().toBlob(function (blob) {
+    //                   var formData = new FormData();
+    //                   formData.append('croppedImage', blob);
+    //                   // Use `jQuery.ajax` method
+    //                   $.ajax('/path/to/upload', {
+    //                     method: "POST",
+    //                     data: formData,
+    //                     processData: false,
+    //                     contentType: false,
+    //                     success: function () {
+    //                       console.log('Upload success');
+    //                     },
+    //                     error: function () {
+    //                       console.log('Upload error');
+    //                     }
+    //                   });
+    //             });
+    //         ----------------------------------------------------*/
+    //     })
+</script>
+{% endblock %}
